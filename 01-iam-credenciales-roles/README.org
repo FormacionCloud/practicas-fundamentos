@@ -1,0 +1,219 @@
+* IAM: credenciales y asunción de roles
+#+begin_quote
+[!important]
+Esta práctica la realizaremos en una *cuenta gratuita* de AWS.
+#+end_quote
+
+En esta práctica aplicaremos los contenidos estudiados en el tema de *IAM* en AWS, relacionados con *autenticación* y *autorización*.
+
+En primer lugar, veremos cómo funcionan las *credenciales* y los *perfiles* de la *CLI* (/Command Line Interface/, o Interfaz de Línea de Comandos) y la consola de AWS. A continuación, aprenderemos a *rotar las claves* de acceso. Por último, veremos cómo *asumir un rol* en otra cuenta de AWS (cuenta del profesor) usando el servicio *STS* (/Security Token Service/), para así entender cómo se delegan permisos entre diferentes cuentas y cómo cambian las credenciales al hacerlo.
+
+* Documentación y recursos adicionales
+- [[https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html][Instalación de la CLI de AWS]]
+
+* Prerrequisitos
+- Acceso a una *cuenta gratuita de AWS*. El profesor te guiará en el proceso de alta.
+- CLI de AWS instalada en tu equipo. Puedes descargar la CLI desde [[https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html][este enlace]]. Comprueba que funciona ejecutando:
+  #+begin_src
+    aws --version
+  #+end_src
+- Usuario de IAM con *permisos de administrador*. Recuerda que no es buena práctica utilizar las credenciales del usuario *root*. El usuario de IAM debe tener tu *nombre y apellidos*.
+- Claves de acceso programático para el usuario administrador de la cuenta: ~AWS_ACCESS_KEY_ID~ y ~AWS_SECRET_ACCESS_KEY~.
+- Credenciales del usuario administrador almacenadas en el equipo. Puedes utilizar el comando ~aws configure~ para crear el archivo de configuración. Utiliza la región ~us-east-1~ por defecto.
+
+* Rotación y validación de credenciales
+** Visualización de la identidad actual y lista de perfiles
+Ejecuta el siguiente comando para ver tu identidad actual:
+
+#+begin_src
+  aws sts get-caller-identity
+#+end_src
+
+Comprueba que se corresponde con la de el usuario administrador de tu cuenta. A continuación, comprueba los perfiles que tienes instalados en tu configuración:
+
+#+begin_src
+  aws configure list
+#+end_src
+
+Debe aparecer un único perfil denominado ~default~, que es el perfil por defecto (a menos que hayas hecho alguna configuración adicional para otra práctica o laboratorio).
+
+** Creación de una nueva clave de acceso
+Crea una nueva clave de acceso para tu usuario actual. Puedes hacerlo desde la CLI o desde la consola.
+
+*** Opción A - CLI
+Ejecuta el siguiente comando cambiando ~TU_USUARIO_IAM~ por el nombre de tu usuario real.
+
+#+begin_src
+aws iam create-access-key --user-name TU_USUARIO_IAM
+#+end_src
+
+Copia la ~AWS_ACCESS_KEY_ID~ y la ~AWS_SECRET_ACCESS_KEY~ en este momento, dado que *no podrás volver a visualizarlas*.
+
+*** Opción B - Consola
+- En la consola, accede a: IAM / Users / TU_USUARIO / Security Credentials
+- Pulsa en el botón ~Create Access Key~
+
+De nuevo, copia la ~AWS_ACCESS_KEY_ID~ y la ~AWS_SECRET_ACCESS_KEY~ en este momento, dado que *no podrás volver a visualizarlas*.
+
+** Configurar un perfil nuevo con la clave nueva
+Crea un nuevo perfil en tu equipo. Dicho perfil se llamará ~rotated~, y estará asociado a las nuevas credenciales de acceso. Para ello, ejecuta el comando siguiente y pega los valores de ~AWS_ACCESS_KEY_ID~ y ~AWS_SECRET_ACCESS_KEY~ obtenidos en el paso anterior:
+
+#+begin_src
+aws configure --profile rotated
+#+end_src
+
+Comprueba a continuación que las nuevas credenciales se han guardado en el fichero de credenciales de tu equipo y que funcionan correctamente. Para este último paso, ejecuta el siguiente comando y comprueba que aparece la información de tu usuario:
+
+#+begin_src
+aws sts get-caller-identity --profile rotated
+#+end_src
+
+** Desactivar y borrar la clave anterior
+Para terminar este apartado, vamos a eliminar las claves originales, dejando únicamente las claves nuevas asociadas al perfil ~rotated~. *No completes este paso si el perfil ~rotated~ no funciona*.
+
+En primer lugar, muestra las credenciales asociadas a tu usuario actual. Deberán aparecer dos:
+
+#+begin_src
+  aws iam list-access-keys --user-name TU_USUARIO_IAM
+#+end_src
+
+A continuación, desactiva la clave original. Para ello, sustituye ~OLD_ACCESS_KEY_ID~ por el id de la clave original:
+
+#+begin_src
+  aws iam update-access-key --user-name TU_USUARIO_IAM --access-key-id OLD_ACCESS_KEY_ID --status Inactive
+#+end_src
+
+Ahora, verifica que el perfil antiguo no funciona, dado que está asociado a las claves originales que acabamos de desactivar:
+
+#+begin_src
+  aws sts get-caller-identity --profile default
+#+end_src
+
+Por último, elimina completamente las claves antiguas. Sustituye de nuevo ~OLD_ACCESS_KEY_ID~ por el id de la clave original:
+
+#+begin_src
+  aws iam delete-access-key --user-name TU_USUARIO_IAM --access-key-id OLD_ACCESS_KEY_ID
+#+end_src
+
+De este modo, hemos reemplazado las claves de acceso del usuario sin perder en ningún momento el acceso a la cuenta.
+
+#+begin_quote
+[!important]
+Observa que ahora el único perfil que funciona es ~rotated~. Esto hace que ejecutar comandos mediante la CLI sea más tedioso, dado que tendremos que añadir el parámetro ~--profile rotated~ a todos los comandos. Para solucionarlo, puedes editar el fichero de credenciales de tu equipo, borrar la entrada ~[default]~, que contenía las credenciales originales eliminadas, y cambiar el nombre de la entrada ~[rotated]~ a ~[default]~. De esta manera, el perfil por defecto contendrá las credenciales nuevas y los comandos de la CLI podrán ejecutarse sin indicar el parámetro ~--profile~ (recuerda que si no se indica esa opción, se selecciona automáticamente el perfil ~default~).
+#+end_quote
+
+* Asunción de rol entre cuentas (alumno - profesor)
+A continuación se proporciona el *ARN* de un *rol* creado en la *cuenta del profesor*:
+
+#+begin_src
+  arn:aws:iam::764255565061:role/AlumnoDemoRole
+#+end_src
+
+Este rol, denominado ~AlumnoDemoRole~, tiene permisos para listar las regiones de la cuenta del profesor. La política de permisos que lleva asociada es la siguiente:
+
+#+begin_src json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "ec2:DescribeRegions"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }
+#+end_src
+
+El profesor aún no ha determinado qué cuentas pueden asumirlo: por ello, debes *proporcionar el ID de tu cuenta* al profesor. Una vez lo tenga en su poder, añadirá una /Trust Policy/ como ésta dentro de su cuenta para permitirte asumirlo:
+#+begin_src json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": { "AWS": "arn:aws:iam::ALUMNO_ACCOUNT_ID:root" },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }
+#+end_src
+
+Una vez hayas proporcionado el ID de tu cuenta de AWS al profesor (consulta Aules para ello), *envíale un correo y espera a que te conteste*. Entonces podrás continuar con la práctica.
+
+** Asunción del rol en la cuenta del profesor
+Una vez hayas recibido la confirmación del profesor, puedes continuar con este apartado. En primer lugar, asegúrate de que tienes tus credenciales correctamente configuradas. Si en el apartado anterior dejaste el perfil ~rotated~, ejecuta el comando con la opción ~--profile rotated~; en caso contrario (si usas el perfil por defecto), no hace falta que especifiques esa opción:
+
+#+begin_src bash
+  aws sts get-caller-identity
+  # En caso de haber mantenido el nombre de perfil "rotated", ejecuta el siguiente comando en su lugar
+  # aws sts get-caller-identity --profile rotated
+#+end_src
+
+A continuación, *asume el rol de la cuenta del profesor* para obtener *credenciales temporales* asociadas a dicho rol:
+
+#+begin_src bash
+  aws sts assume-role --role-arn arn:aws:iam::764255565061:role/AlumnoDemoRole --role-session-name alumno-sesion-1
+  # De nuevo, en caso de haber mantenido el nombre de perfil "rotated", ejecuta el siguiente comando en su lugar
+  # aws sts assume-role --role-arn arn:aws:iam::764255565061:role/AlumnoDemoRole --role-session-name alumno-sesion-1 --profile rotated
+#+end_src
+
+Verás que la salida genera una ~AWS_ACCESS_KEY_ID~, una ~AWS_SECRET_ACCESS_KEY~ y un ~AWS_SESSION_TOKEN~. Son las *credenciales temporales* asociadas a dicho rol. Observa que tienen *fecha de expiración*. *Haz una copia* de dichas credenciales para utilizarlas posteriormente.
+
+En lugar de almacenar esas credenciales temporales en el fichero de configuración, utilizaremos *variables de entorno* que tendrán validez únicamente en la línea de comando que estás utilizando. En el caso de utilizar *Windows*, ejecuta:
+#+begin_src
+  set AWS_ACCESS_KEY_ID=SUSTITUYE-AQUI-LA-ACCESS-KEY-ID-TEMPORAL
+  set AWS_SECRET_ACCESS_KEY=SUSTITUYE-AQUI-LA-SECRET-ACCESS-KEY-TEMPORAL
+  set AWS_SESSION_TOKEN=SUSTITUYE-AQUI-EL-SESSION-TOKEN-TEMPORAL
+#+end_src
+
+Y si estás utilizando *Linux*:
+#+begin_src
+  export AWS_ACCESS_KEY_ID=SUSTITUYE-AQUI-LA-ACCESS-KEY-ID-TEMPORAL
+  export AWS_SECRET_ACCESS_KEY=SUSTITUYE-AQUI-LA-SECRET-ACCESS-KEY-TEMPORAL
+  export AWS_SESSION_TOKEN=SUSTITUYE-AQUI-EL-SESSION-TOKEN-TEMPORAL
+#+end_src
+
+Por último, ejecuta los siguientes comandos. En primer lugar, comprueba las credenciales que se están utilizando ahora:
+#+begin_src
+  aws sts get-caller-identity
+#+end_src
+
+Verás que estás utilizando las credenciales asociadas al *rol de la cuenta del profesor*. A continuación, ejecuta el comando:
+#+begin_src
+  aws ec2 describe-regions
+#+end_src
+
+Este comando te devolverá las regiones activas *en la cuenta del profesor*.
+
+#+begin_quote
+[!important]
+Como puedes observar, las *variables de entorno* tienen *prioridad* sobre el fichero de credenciales. Si existen las variables de entorno, se usan sus datos en lugar de las credenciales almacenadas en el fichero de credenciales.
+#+end_quote
+
+Para terminar, limpia las variables de entorno. En Windows:
+#+begin_src
+  set AWS_ACCESS_KEY_ID=
+  set AWS_SECRET_ACCESS_KEY=
+  set AWS_SESSION_TOKEN=
+#+end_src
+
+Y en Linux:
+#+begin_src
+  export AWS_ACCESS_KEY_ID=
+  export AWS_SECRET_ACCESS_KEY=
+  export AWS_SESSION_TOKEN=
+#+end_src
+
+** Asunción de rol en consola web
+Para terminar este apartado, asume el rol en la *consola web*. Para ello debes *iniciar sesión en tu cuenta* con el usuario administrador desde la consola. *No inicies sesión como root*.
+
+Pulsa en la opción /Switch role/ en la parte superior derecha, al desplegar el nombre de usuario. Indica el *id de cuenta del profesor* (~764255565061~) y el *nombre del rol*, ~AlumnoDemoRole~.
+
+Verifica que con el rol asumido han cambiado los permisos y que no te deja hacer nada en la cuenta del profesor (con la excepción de listar regiones, claro ;)
+
+Para finalizar, abandona el rol y retorna a tu usuario normal.
+
+* Limpieza
+En esta práctica no es necesario realizar limpieza de recursos. Pero recuerda que la *configuración de tu equipo* almacena las credenciales de la *cuenta gratuita* de AWS. Para futuras prácticas, asegúrate de actualizar las credenciales para utilizar la cuenta que se indique en cada momento: Learner Lab, cuenta gratuita, etc.
