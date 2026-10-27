@@ -29,7 +29,7 @@ Ejecuta el siguiente comando para ver tu identidad actual:
   aws sts get-caller-identity
 #+end_src
 
-Comprueba que se corresponde con la de el usuario administrador de tu cuenta. A continuación, comprueba los perfiles que tienes instalados en tu configuración:
+Comprueba que se corresponde con la de el usuario administrador de tu cuenta. A continuación, comprueba el perfil que estás usando en este momento:
 
 #+begin_src
   aws configure list
