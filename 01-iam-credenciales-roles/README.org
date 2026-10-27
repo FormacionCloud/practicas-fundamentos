@@ -187,6 +187,13 @@ Verás que estás utilizando las credenciales asociadas al *rol de la cuenta del
 
 Este comando te devolverá las regiones activas *en la cuenta del profesor*.
 
+Por último, intenta realizar cualquier otra acción en la cuenta del profesor. Por ejemplo, listar los buckets de dicha cuenta:
+#+begin_src
+  aws s3 ls
+#+end_src
+
+Comprueba que dichas acciones se deniegan por no tener el rol los permisos adecuados para realizarlas.
+
 #+begin_quote
 [!important]
 Como puedes observar, las *variables de entorno* tienen *prioridad* sobre el fichero de credenciales. Si existen las variables de entorno, se usan sus datos en lugar de las credenciales almacenadas en el fichero de credenciales.
