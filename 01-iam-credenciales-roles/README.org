@@ -162,14 +162,14 @@ A continuación, *asume el rol de la cuenta del profesor* para obtener *credenci
 Verás que la salida genera una ~AWS_ACCESS_KEY_ID~, una ~AWS_SECRET_ACCESS_KEY~ y un ~AWS_SESSION_TOKEN~. Son las *credenciales temporales* asociadas a dicho rol. Observa que tienen *fecha de expiración*. *Haz una copia* de dichas credenciales para utilizarlas posteriormente.
 
 En lugar de almacenar esas credenciales temporales en el fichero de configuración, utilizaremos *variables de entorno* que tendrán validez únicamente en la línea de comando que estás utilizando. En el caso de utilizar *Windows*, ejecuta:
-#+begin_src
+#+begin_src bat
   set AWS_ACCESS_KEY_ID=SUSTITUYE-AQUI-LA-ACCESS-KEY-ID-TEMPORAL
   set AWS_SECRET_ACCESS_KEY=SUSTITUYE-AQUI-LA-SECRET-ACCESS-KEY-TEMPORAL
   set AWS_SESSION_TOKEN=SUSTITUYE-AQUI-EL-SESSION-TOKEN-TEMPORAL
 #+end_src
 
 Y si estás utilizando *Linux*:
-#+begin_src
+#+begin_src bash
   export AWS_ACCESS_KEY_ID=SUSTITUYE-AQUI-LA-ACCESS-KEY-ID-TEMPORAL
   export AWS_SECRET_ACCESS_KEY=SUSTITUYE-AQUI-LA-SECRET-ACCESS-KEY-TEMPORAL
   export AWS_SESSION_TOKEN=SUSTITUYE-AQUI-EL-SESSION-TOKEN-TEMPORAL
@@ -193,14 +193,14 @@ Como puedes observar, las *variables de entorno* tienen *prioridad* sobre el fic
 #+end_quote
 
 Para terminar, limpia las variables de entorno. En Windows:
-#+begin_src
+#+begin_src bat
   set AWS_ACCESS_KEY_ID=
   set AWS_SECRET_ACCESS_KEY=
   set AWS_SESSION_TOKEN=
 #+end_src
 
 Y en Linux:
-#+begin_src
+#+begin_src bash
   export AWS_ACCESS_KEY_ID=
   export AWS_SECRET_ACCESS_KEY=
   export AWS_SESSION_TOKEN=
