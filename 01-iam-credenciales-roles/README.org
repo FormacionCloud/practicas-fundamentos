@@ -22,7 +22,7 @@ En primer lugar, veremos cómo funcionan las *credenciales* y los *perfiles* de 
 - Credenciales del usuario administrador almacenadas en el equipo. Puedes utilizar el comando ~aws configure~ para crear el archivo de configuración. Utiliza la región ~us-east-1~ por defecto.
 
 * Rotación y validación de credenciales
-** Visualización de la identidad actual y lista de perfiles
+** Visualización de la identidad y perfil activos
 Ejecuta el siguiente comando para ver tu identidad actual:
 
 #+begin_src
