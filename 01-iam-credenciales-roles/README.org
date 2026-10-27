@@ -35,7 +35,7 @@ Comprueba que se corresponde con la de el usuario administrador de tu cuenta. A 
   aws configure list
 #+end_src
 
-Debe aparecer un único perfil denominado ~default~, que es el perfil por defecto (a menos que hayas hecho alguna configuración adicional para otra práctica o laboratorio).
+Verás la información (enmascarada) sobre las credenciales activas, región por defecto seleccionada y perfil en uso (~not set~ equivale al perfil por defecto).
 
 ** Creación de una nueva clave de acceso
 Crea una nueva clave de acceso para tu usuario actual. Puedes hacerlo desde la CLI o desde la consola.
